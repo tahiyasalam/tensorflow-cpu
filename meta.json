@@ -1,0 +1,13 @@
+{
+  "module_id": "4a34cd30-a8d3-472f-acb3-0718d608c3f8:tf-cpu-new-module",
+  "visibility": "private",
+  "url": "",
+  "description": "hi we want this module to work",
+  "models": [
+    {
+      "api": "rdk:service:mlmodel",
+      "model": "robodoc:mlmodel:tensorflow-cpu"
+    }
+  ],
+  "entrypoint": "run.sh"
+}

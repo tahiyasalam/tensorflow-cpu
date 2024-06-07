@@ -20,7 +20,7 @@ LOGGER = getLogger(__name__)
 
 
 class TensorflowModule(MLModel, Reconfigurable):
-    MODEL: ClassVar[Model] = Model(ModelFamily("viam", "mlmodel"), "tensorflow-cpu")
+    MODEL: ClassVar[Model] = Model(ModelFamily("robodoc", "mlmodel"), "tensorflow-cpu")
      
     def __init__(self, name: str):
         super().__init__(name=name)
@@ -65,21 +65,27 @@ class TensorflowModule(MLModel, Reconfigurable):
 
         # Save the inputInfo and outputInfo as a list of tuples, 
         # each being a tensor with (name, shape, underlying type)
-        self.inputInfo = []
-        self.outputInfo = []
-        f = self.model.signatures['serving_default']
+        signature_keys = ['action', 'get_initial_state', 'get_train_step', 'get_metadata', 'compute_target_q']
+        self.inputInfo = {}
+        self.outputInfo = {}
+        for k in signature_keys:
+            inputs = []
+            outputs = []
+            f = self.model.signatures[k]
 
-        # f.inputs may include "empty" inputs as resources, but _arg_keywords only contains input tensor names
-        if len(f._arg_keywords) <= len(f.inputs):  # should always be true tbh
-            for i in range(len(f._arg_keywords)):
-                ff = f.inputs[i]
-                if ff.dtype != "resource": # probably unneccessary to check now
-                    info = (f._arg_keywords[i], prepShape(ff.get_shape()) ,ff.dtype) 
-                    self.inputInfo.append(info)
+            # f.inputs may include "empty" inputs as resources, but _arg_keywords only contains input tensor names
+            if len(f._arg_keywords) <= len(f.inputs):  # should always be true tbh
+                for i in range(len(f._arg_keywords)):
+                    ff = f.inputs[i]
+                    if ff.dtype != "resource": # probably unneccessary to check now
+                        info = (f._arg_keywords[i], prepShape(ff.get_shape()) ,ff.dtype) 
+                        inputs.append(info)
+            self.inputInfo[k] = inputs
 
-        for out in f.outputs:
-            info = (out.name, prepShape(out.get_shape()), out.dtype)
-            self.outputInfo.append(info)
+            for out in f.outputs:
+                info = (out.name, prepShape(out.get_shape()), out.dtype)
+                outputs.append(info)
+            self.outputInfo[k] = outputs
 
 
     async def infer(self, input_tensors: Dict[str, NDArray], *, timeout: Optional[float]) -> Dict[str, NDArray]:
